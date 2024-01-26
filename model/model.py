@@ -77,6 +77,7 @@ class Img2LaTex_model(keras.Model):
 
         # flatten last two dimensions
         B, W, H, C = x.shape
+
         #x = tf.reshape(x, (B, W*H, C)) #-> (batch_size, W' * H', 256)
         x = tf.keras.layers.Reshape((W*H, C))(x)
         x  = self.encoder_rnn(x) # -> (batch_size, W' * H', 2*encoder_units)

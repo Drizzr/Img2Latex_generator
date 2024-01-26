@@ -2,7 +2,8 @@ import os
 import json
 import tensorflow as tf
 from model import Img2LaTex_model, Vocabulary, LatexProducer
-
+import numpy as np
+import math
 import argparse
 
 
@@ -44,29 +45,57 @@ def load_from_checkpoint(args):
 
 producer = load_from_checkpoint(args=args)
 
+
 def process_img(img_path):
-    img = tf.io.read_file(img_path)
-    img = tf.io.decode_png(img, channels=1)
-    img = tf.cast(img, dtype=tf.dtypes.float32) / 255.0
+    img = img = tf.io.read_file(img_path)
+    img = tf.io.decode_png(img, channels=1) / 255
+
+    img_data = np.asarray(img, dtype=np.uint8) / 255  # convert to numpy array
+    nnz_inds = np.where(img_data!=1) # returns tupel ([...], [...]) of indices where img_data is not 255
+
+    if len(nnz_inds[0]) == 0:
+        return img
+    y_min = np.min(nnz_inds[0])
+    y_max = np.max(nnz_inds[0])
+    x_min = np.min(nnz_inds[1])
+    x_max = np.max(nnz_inds[1])
+    img = img[y_min:y_max+1, x_min:x_max+1, :]
+    
+    width, height = img.shape[1], img.shape[0]
+
+    if width / height < 480 / 96:
+        new_width = 480 / 96 * height
+        pad = (new_width - width) / 2
+        img = tf.pad(img, [[0, 0], [math.ceil(pad), math.floor(pad)], [0, 0]], constant_values=1)
+    
+    elif width / height > 480 / 96:
+        new_height = width * 96 / 480
+        pad = (new_height - height) / 2
+        img = tf.pad(img, [[math.ceil(pad), math.floor(pad)], [0, 0], [0, 0]], constant_values=1)
+
+    img = tf.image.resize(img, (96, 480))
+
     img = tf.expand_dims(img, axis=0)
+
     return img
 
-while True:
-    img_path = input("Enter image path: ")
-    if img_path == "exit":
-        break
-    if not os.path.exists(img_path):
-        print("Invalid path")
-        continue
-    try:
-        img = process_img(img_path)
-        if args.beam:
-            latex = producer._beam_search(img, args.beam_width)
-        else:
-            latex = producer._greedy_decoding(img)
-        print(latex)
-    except Exception as e:
-        print(e)
-        continue
+if __name__ == "__main__":
+    while True:
+        img_path = input("Enter image path: ")
+        if img_path == "exit":
+            break
+        if not os.path.exists(img_path):
+            print("Invalid path")
+            continue
+        try:
+            img = process_img(img_path)
+            if args.beam:
+                latex = producer._beam_search(img, args.beam_width)
+            else:
+                latex = producer._greedy_decoding(img)
+            print(latex)
+        except KeyError as e:
+            print(e)
+            continue
 
 
