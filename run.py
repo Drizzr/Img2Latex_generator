@@ -18,7 +18,7 @@ args = parser.parse_args()
 def load_from_checkpoint(args):
     """Load model from checkpoint"""
     print("loading model from checkpoint...")
-    with open("checkpoint/chechpoint_epoch_41_0.0%_estimated_loss_0.287/params.json", "r") as f:
+    with open("checkpoint/chechpoint_epoch_26_0.0%_estimated_loss_0.27/params.json", "r") as f:
         params = json.load(f)
 
     vocab = Vocabulary("vocab.txt")
@@ -35,7 +35,7 @@ def load_from_checkpoint(args):
     
     model(x, formula)
 
-    model.load_weights("checkpoint/chechpoint_epoch_41_0.0%_estimated_loss_0.287/weights.h5")
+    model.load_weights("checkpoint/chechpoint_epoch_26_0.0%_estimated_loss_0.27/weights.h5")
     print("model loaded successfully...")
 
     producer = LatexProducer(model, vocab, args.max_len)
@@ -76,6 +76,12 @@ def process_img(img_path):
     img = tf.image.resize(img, (96, 480))
 
     img = tf.expand_dims(img, axis=0)
+    
+    #save image
+    imgS = img[0, :, :, :]
+    imgS = tf.image.convert_image_dtype(imgS, tf.uint8)
+    imgS = tf.image.encode_png(imgS)
+    tf.io.write_file("processed_img.png", imgS)
 
     return img
 
