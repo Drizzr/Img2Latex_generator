@@ -50,7 +50,7 @@ class Img2LaTex_model(keras.Model):
 
 
     @tf.function(reduce_retracing=True)
-    def call(self, imgs, formulas, state=None, return_state=False):
+    def call(self, imgs, formulas, state=None, return_state=True):
         """
         imgs: [B, W, H, C] in our case [Batch_size, 480, 96, 1]
         
@@ -89,7 +89,6 @@ class Img2LaTex_model(keras.Model):
     def decode(self, encoded_imgs, formulas, state=None):
 
         embeddings = self.embedding(formulas) # -> (batch_size, max_len, embedding_dim)
-        
         x, state = self.rnn_decoder(embeddings, initial_state=state)
 
         
